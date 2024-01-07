@@ -40,6 +40,28 @@ def execute_query(query):
             cursor.close()
             connection.close()
 
+@app.route('/tara/<nume>', methods=['GET'])
+def tara(nume):
+    """
+    Endpoint to get a specific country by name.
+
+    ---
+    parameters:
+      - name: nume
+        in: path
+        type: string
+        required: true
+        description: The country name to search for.
+    responses:
+      200:
+        description: The country with the specified name.
+        examples:
+            [{"nume": "Country1", "populatie": 100000000, "densitate": 100, "area": 1000000, "gdp": 1000000000, "limba_vorbita": "Language1", "fus_orar": "Timezone1"}]
+
+    """
+    query = f"SELECT nume, populatie, densitate, area, gdp, limba_vorbita, fus_orar, vecini FROM countries WHERE nume ILIKE '%{nume}%';"
+    result = execute_query(query)
+    return jsonify(result)
 
 @app.route('/top-10-tari-populatie', methods=['GET'])
 def top_10_populatie():

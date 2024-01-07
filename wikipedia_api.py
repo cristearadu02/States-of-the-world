@@ -170,9 +170,33 @@ def extract_data(url):
 
             new_data["Area"] = area
 
+
     return new_data
 
+def find_neighbours(country):
+    data = {}
+    url = "https://en.wikipedia.org/wiki/List_of_countries_and_territories_by_number_of_land_borders"
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, "html.parser")
 
+    # Find the table with the relevant information
+    table = soup.find("table", {"class": "wikitable"})
+
+    # Iterate through rows in the table
+    for row in table.find_all("tr")[1:]:  # Skip the header row
+        columns = row.find_all("td")
+
+        if columns:  # Check if it's not an empty row
+            neighbor_country = columns[0].find("a").text.strip()  # Extract neighbor country name
+            neighbors = [n.strip() for n in columns[5].get_text("\n").split("\n") if n.strip()]  # Extract neighboring countries
+
+            data[neighbor_country] = neighbors
+
+    # Return the neighbors of the specified country
+    if country in data:
+        return data[country]
+    else:
+        return []
 
 def insert_into_database(country, data_dict):
     """
@@ -200,7 +224,8 @@ def insert_into_database(country, data_dict):
                 gdp NUMERIC(20, 0),
                 limba_vorbita VARCHAR(255),
                 fus_orar VARCHAR(255),
-                tip_regim VARCHAR(255)
+                tip_regim VARCHAR(255),
+                vecini VARCHAR(1000)
             );
         """)
 
@@ -216,18 +241,20 @@ def insert_into_database(country, data_dict):
         # Insert data into the table
         cursor.execute("""
             INSERT INTO countries (
-                nume, nume_capitala, populatie, densitate, area, gdp, limba_vorbita, fus_orar, tip_regim
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s);
+                nume, nume_capitala, populatie, densitate, area, gdp, limba_vorbita, fus_orar, tip_regim, vecini
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
         """, (
             country,
             data_dict.get('Capital', ''),
             populatie,
             densitate,
             area,
+
             gdp,
             data_dict.get('Official languages', ''),
             data_dict.get('Time zone(s)', ''),
-            data_dict.get('Government', '')
+            data_dict.get('Government', ''),
+            ', '.join(data_dict.get('Neighbors', []))
         ))
 
         connection.commit()
@@ -273,6 +300,7 @@ def main():
         url = f"https://en.wikipedia.org/wiki/{country.replace(' ', '_')}"
         if check_page_exists(url):
             data_extracted = extract_data(url)
+            data_extracted['Neighbors'] = find_neighbours(country)
             insert_into_database(country, data_extracted)
             print(f"Data for {country} inserted into the database.")
         else:
