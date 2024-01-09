@@ -174,6 +174,16 @@ def extract_data(url):
     return new_data
 
 def find_neighbours(country):
+    """
+    Find the neighboring countries of the specified country.
+
+    Args:
+        country (str): The name of the country.
+
+    Returns:
+        list: List of neighboring countries.
+
+    """
     data = {}
     url = "https://en.wikipedia.org/wiki/List_of_countries_and_territories_by_number_of_land_borders"
     response = requests.get(url)
